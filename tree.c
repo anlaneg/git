@@ -12,9 +12,9 @@
 const char *tree_type = "tree";
 
 int read_tree_at(struct repository *r,
-		 struct tree *tree, struct strbuf *base,
+		 struct tree *tree, struct strbuf *base/*base路径*/,
 		 const struct pathspec *pathspec,
-		 read_tree_fn_t fn, void *context)
+		 read_tree_fn_t fn/*entry访问函数*/, void *context)
 {
 	struct tree_desc desc;
 	struct name_entry entry;
@@ -25,6 +25,7 @@ int read_tree_at(struct repository *r,
 	if (parse_tree(tree))
 		return -1;
 
+	/*初始化desc*/
 	init_tree_desc(&desc, tree->buffer, tree->size);
 
 	while (tree_entry(&desc, &entry)) {
@@ -37,6 +38,7 @@ int read_tree_at(struct repository *r,
 				continue;
 		}
 
+		/*通过fn访问此entry*/
 		switch (fn(&entry.oid, base,
 			   entry.path, entry.mode, context)) {
 		case 0:
@@ -48,8 +50,10 @@ int read_tree_at(struct repository *r,
 		}
 
 		if (S_ISDIR(entry.mode))
+			/*entry为目录*/
 			oidcpy(&oid, &entry.oid);
 		else if (S_ISGITLINK(entry.mode)) {
+			/*gitlink情况*/
 			struct commit *commit;
 
 			commit = lookup_commit(r, &entry.oid);
@@ -106,7 +110,7 @@ struct tree *lookup_tree(struct repository *r, const struct object_id *oid)
 {
 	struct object *obj = lookup_object(r, oid);
 	if (!obj)
-		return create_object(r, oid, alloc_tree_node(r));
+		return create_object(r, oid, alloc_tree_node(r)/*申请tree*/);
 	return object_as_type(obj, OBJ_TREE, 0);
 }
 

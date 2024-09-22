@@ -6,7 +6,7 @@
 #include "pathspec.h"
 #include "json-writer.h"
 
-static const char *get_mode(const char *str, unsigned int *modep)
+static const char *get_mode(const char *str, unsigned int *modep/*出参，转字符串mode到int mode*/)
 {
 	unsigned char c;
 	unsigned int mode = 0;
@@ -16,30 +16,37 @@ static const char *get_mode(const char *str, unsigned int *modep)
 
 	while ((c = *str++) != ' ') {
 		if (c < '0' || c > '7')
+			/*遇到非'0'-'7'以外的字符*/
 			return NULL;
+		/*结算成mode*/
 		mode = (mode << 3) + (c - '0');
 	}
 	*modep = mode;
+	/*mode之后为路径*/
 	return str;
 }
 
-static int decode_tree_entry(struct tree_desc *desc, const char *buf, unsigned long size, struct strbuf *err)
+static int decode_tree_entry(struct tree_desc *desc/*出参，由buf内容填充*/, const char *buf/*buf由三部分组成:mode+path+hash*/, unsigned long size/*buffer长度*/, struct strbuf *err)
 {
 	const char *path;
 	unsigned int mode, len;
 	const unsigned hashsz = the_hash_algo->rawsz;
 
 	if (size < hashsz + 3 || buf[size - (hashsz + 1)]) {
+		/*buffer长度不足，不足以表示文件名称*/
 		strbuf_addstr(err, _("too-short tree object"));
 		return -1;
 	}
 
+	/*分析buf，解析出path+ mode*/
 	path = get_mode(buf, &mode);
 	if (!path) {
+		/*mode解析失败*/
 		strbuf_addstr(err, _("malformed mode in tree entry"));
 		return -1;
 	}
 	if (!*path) {
+		/*path为空*/
 		strbuf_addstr(err, _("empty filename in tree entry"));
 		return -1;
 	}
@@ -49,6 +56,7 @@ static int decode_tree_entry(struct tree_desc *desc, const char *buf, unsigned l
 	desc->entry.path = path;
 	desc->entry.mode = (desc->flags & TREE_DESC_RAW_MODES) ? mode : canon_mode(mode);
 	desc->entry.pathlen = len - 1;
+	/*path后面保存的是oid*/
 	oidread(&desc->entry.oid, (const unsigned char *)path + len);
 
 	return 0;
@@ -66,6 +74,7 @@ static int init_tree_desc_internal(struct tree_desc *desc, const void *buffer,
 	return 0;
 }
 
+/*利用buffer初始化desc*/
 void init_tree_desc(struct tree_desc *desc, const void *buffer, unsigned long size)
 {
 	struct strbuf err = STRBUF_INIT;
@@ -116,15 +125,18 @@ static int update_tree_entry_internal(struct tree_desc *desc, struct strbuf *err
 	const void *buf = desc->buffer;
 	const unsigned char *end = (const unsigned char *)desc->entry.path + desc->entry.pathlen + 1 + the_hash_algo->rawsz;
 	unsigned long size = desc->size;
-	unsigned long len = end - (const unsigned char *)buf;
+	unsigned long len = end - (const unsigned char *)buf;/*desc对应的长度*/
 
 	if (size < len)
+		/*buffer内容过短*/
 		die(_("too-short tree file"));
-	buf = end;
+	buf = end;/*更新下一个buf*/
 	size -= len;
+	/*更新新的buffer*/
 	desc->buffer = buf;
 	desc->size = size;
 	if (size)
+		/*再解析desc->entry*/
 		return decode_tree_entry(desc, buf, size, err);
 	return 0;
 }
@@ -154,9 +166,12 @@ int update_tree_entry_gently(struct tree_desc *desc)
 int tree_entry(struct tree_desc *desc, struct name_entry *entry)
 {
 	if (!desc->size)
+		/*无对应的buffer*/
 		return 0;
 
+	/*取对应的entry*/
 	*entry = desc->entry;
+	/*更新到next entry*/
 	update_tree_entry(desc);
 	return 1;
 }

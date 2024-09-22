@@ -23,6 +23,7 @@ static void restore_sigpipe_to_default(void)
 	signal(SIGPIPE, SIG_DFL);
 }
 
+/*git 入口*/
 int main(int argc, const char **argv)
 {
 	int result;

@@ -1394,6 +1394,7 @@ static int parse_status_slot(const char *slot)
 	return LOOKUP_CONFIG(color_status_slots, slot);
 }
 
+/*检查git status相关的配置，填充内容*/
 static int git_status_config(const char *k, const char *v, void *cb)
 {
 	struct wt_status *s = cb;
@@ -1527,12 +1528,14 @@ int cmd_status(int argc, const char **argv, const char *prefix)
 		OPT_END(),
 	};
 
+	/*显示status帮助信息*/
 	if (argc == 2 && !strcmp(argv[1], "-h"))
 		usage_with_options(builtin_status_usage, builtin_status_options);
 
 	prepare_repo_settings(the_repository);
 	the_repository->settings.command_requires_full_index = 0;
 
+	/*通过配置初始化status*/
 	status_init_config(&s, git_status_config);
 	argc = parse_options(argc, argv, prefix,
 			     builtin_status_options,

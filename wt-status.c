@@ -133,7 +133,7 @@ void wt_status_prepare(struct repository *r, struct wt_status *s)
 	s->relative_paths = 1;
 	s->branch = resolve_refdup("HEAD", 0, NULL, NULL);
 	s->reference = "HEAD";
-	s->fp = stdout;
+	s->fp = stdout;/*输出到标准输出*/
 	s->index_file = get_index_file();
 	s->change.strdup_strings = 1;
 	s->untracked.strdup_strings = 1;
@@ -666,19 +666,23 @@ static void wt_status_collect_changes_index(struct wt_status *s)
 }
 
 static int add_file_to_list(const struct object_id *oid,
-			    struct strbuf *base, const char *path,
-			    unsigned int mode, void *context)
+			    struct strbuf *base/*文件基准路径*/, const char *path/*文件路径*/,
+			    unsigned int mode/*文件mode*/, void *context)
 {
 	struct string_list_item *it;
 	struct wt_status_change_data *d;
 	struct wt_status *s = context;
+	/*文件全路径*/
 	struct strbuf full_name = STRBUF_INIT;
 
 	if (S_ISDIR(mode))
 		return READ_TREE_RECURSIVE;
 
+	/*先存入base*/
 	strbuf_add(&full_name, base->buf, base->len);
+	/*再存入path*/
 	strbuf_addstr(&full_name, path);
+	/*full_name加入change*/
 	it = string_list_insert(&s->change, full_name.buf);
 	d = it->util;
 	if (!d) {
@@ -686,6 +690,7 @@ static int add_file_to_list(const struct object_id *oid,
 		it->util = d;
 	}
 
+	/*指明add状态*/
 	d->index_status = DIFF_STATUS_ADDED;
 	/* Leave {mode,oid}_head zero for adds. */
 	d->mode_index = mode;

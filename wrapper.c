@@ -406,6 +406,7 @@ int warn_on_fopen_errors(const char *path)
 
 FILE *fopen_or_warn(const char *path, const char *mode)
 {
+	/*打开文件*/
 	FILE *fp = fopen(path, mode);
 
 	if (fp)

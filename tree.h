@@ -7,7 +7,7 @@ struct repository;
 struct strbuf;
 
 struct tree {
-	struct object object;
+	struct object object;/*必须以obj开头*/
 	void *buffer;
 	unsigned long size;
 };

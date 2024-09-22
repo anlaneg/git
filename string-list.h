@@ -85,10 +85,11 @@ typedef int (*compare_strings_fn)(const char *, const char *);
  *   function, otherwise `strcmp()` is used as the default function.
  */
 struct string_list {
-	struct string_list_item *items;
-	size_t nr;
-	size_t alloc;
+	struct string_list_item *items;/*数组形item*/
+	size_t nr;/*有效元素数*/
+	size_t alloc;/*申请总元素数*/
 	unsigned int strdup_strings:1;
+	/*比对函数*/
 	compare_strings_fn cmp; /* NULL uses strcmp() */
 };
 

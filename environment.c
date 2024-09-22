@@ -318,6 +318,7 @@ char *get_index_file(void)
 {
 	if (!the_repository->index_file)
 		BUG("git environment hasn't been setup");
+	/*返回此repository对应的index文件*/
 	return the_repository->index_file;
 }
 

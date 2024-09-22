@@ -19,7 +19,9 @@
 #define NO_PARSEOPT		(1<<6) /* parse-options is not used */
 
 struct cmd_struct {
+	/*命令名称*/
 	const char *cmd;
+	/*命令执行函数*/
 	int (*fn)(int, const char **, const char *);
 	unsigned int option;
 };
@@ -139,6 +141,7 @@ static int handle_options(const char ***argv, int *argc, int *envchanged)
 	while (*argc > 0) {
 		const char *cmd = (*argv)[0];
 		if (cmd[0] != '-')
+			/*提供的为命令，非选项，跳出*/
 			break;
 
 		/*
@@ -417,13 +420,15 @@ static int handle_alias(int *argcp, const char ***argv)
 	return ret;
 }
 
-static int run_builtin(struct cmd_struct *p, int argc, const char **argv)
+/*运行内置命令*/
+static int run_builtin(struct cmd_struct *p, int argc, const char **argv/*命令参数*/)
 {
 	int status, help;
 	struct stat st;
 	const char *prefix;
 	int run_setup = (p->option & (RUN_SETUP | RUN_SETUP_GENTLY));
 
+	/*采用help选项*/
 	help = argc == 2 && !strcmp(argv[1], "-h");
 	if (help && (run_setup & RUN_SETUP))
 		/* demote to GENTLY to allow 'git cmd -h' outside repo */
@@ -463,7 +468,7 @@ static int run_builtin(struct cmd_struct *p, int argc, const char **argv)
 	trace2_cmd_list_env_vars();
 
 	validate_cache_entries(the_repository->index);
-	status = p->fn(argc, argv, prefix);
+	status = p->fn(argc, argv, prefix);/*运行内置命令*/
 	validate_cache_entries(the_repository->index);
 
 	if (status)
@@ -486,6 +491,7 @@ static int run_builtin(struct cmd_struct *p, int argc, const char **argv)
 	return 0;
 }
 
+/*内置的命令*/
 static struct cmd_struct commands[] = {
 	{ "add", cmd_add, RUN_SETUP | NEED_WORK_TREE },
 	{ "am", cmd_am, RUN_SETUP | NEED_WORK_TREE },
@@ -550,7 +556,7 @@ static struct cmd_struct commands[] = {
 	{ "init", cmd_init_db },
 	{ "init-db", cmd_init_db },
 	{ "interpret-trailers", cmd_interpret_trailers, RUN_SETUP_GENTLY },
-	{ "log", cmd_log, RUN_SETUP },
+	{ "log", cmd_log, RUN_SETUP },/*显示日志*/
 	{ "ls-files", cmd_ls_files, RUN_SETUP },
 	{ "ls-remote", cmd_ls_remote, RUN_SETUP_GENTLY },
 	{ "ls-tree", cmd_ls_tree, RUN_SETUP },
@@ -608,7 +614,7 @@ static struct cmd_struct commands[] = {
 	{ "sparse-checkout", cmd_sparse_checkout, RUN_SETUP | NEED_WORK_TREE },
 	{ "stage", cmd_add, RUN_SETUP | NEED_WORK_TREE },
 	{ "stash", cmd_stash, RUN_SETUP | NEED_WORK_TREE },
-	{ "status", cmd_status, RUN_SETUP | NEED_WORK_TREE },
+	{ "status", cmd_status, RUN_SETUP | NEED_WORK_TREE },/*显示状态*/
 	{ "stripspace", cmd_stripspace },
 	{ "submodule--helper", cmd_submodule__helper, RUN_SETUP | SUPPORT_SUPER_PREFIX },
 	{ "switch", cmd_switch, RUN_SETUP | NEED_WORK_TREE },
@@ -632,6 +638,7 @@ static struct cmd_struct commands[] = {
 	{ "write-tree", cmd_write_tree, RUN_SETUP },
 };
 
+/*查询内置命令*/
 static struct cmd_struct *get_builtin(const char *s)
 {
 	int i;
@@ -690,6 +697,7 @@ static void strip_extension(const char **argv)
 #define strip_extension(cmd)
 #endif
 
+/*尝试内建的命令*/
 static void handle_builtin(int argc, const char **argv)
 {
 	struct strvec args = STRVEC_INIT;
@@ -697,7 +705,7 @@ static void handle_builtin(int argc, const char **argv)
 	struct cmd_struct *builtin;
 
 	strip_extension(argv);
-	cmd = argv[0];
+	cmd = argv[0];/*命令字*/
 
 	/* Turn "git cmd --help" into "git help --exclude-guides cmd" */
 	if (argc > 1 && !strcmp(argv[1], "--help")) {
@@ -716,8 +724,10 @@ static void handle_builtin(int argc, const char **argv)
 		argv = args.v;
 	}
 
+	/*取内置命令*/
 	builtin = get_builtin(cmd);
 	if (builtin)
+		/*运行内置命令*/
 		exit(run_builtin(builtin, argc, argv));
 	strvec_clear(&args);
 }
@@ -785,6 +795,7 @@ static int run_argv(int *argcp, const char ***argv)
 		 * process.
 		 */
 		if (!done_alias)
+			/*尝试内建的命令*/
 			handle_builtin(*argcp, *argv);
 		else if (get_builtin(**argv)) {
 			struct child_process cmd = CHILD_PROCESS_INIT;
@@ -868,8 +879,10 @@ int cmd_main(int argc, const char **argv)
 
 	cmd = argv[0];
 	if (!cmd)
+		/*没有指定命令，默认使用git-help*/
 		cmd = "git-help";
 	else {
+		/*取最后一层命令*/
 		const char *slash = find_last_dir_sep(cmd);
 		if (slash)
 			cmd = slash + 1;
@@ -888,7 +901,9 @@ int cmd_main(int argc, const char **argv)
 	 * that one cannot handle it.
 	 */
 	if (skip_prefix(cmd, "git-", &cmd)) {
+		/*cmd已被剥离'git-'前缀头，更新命令并进行处理*/
 		argv[0] = cmd;
+		/*处理内置命令*/
 		handle_builtin(argc, argv);
 		die(_("cannot handle %s as a builtin"), cmd);
 	}
@@ -896,7 +911,7 @@ int cmd_main(int argc, const char **argv)
 	/* Look for flags.. */
 	argv++;
 	argc--;
-	handle_options(&argv, &argc, NULL);
+	handle_options(&argv/*出参，相应参数会被消耗*/, &argc, NULL);/*git命令选项处理*/
 
 	if (!argc) {
 		/* The user didn't specify a command; give them help */
@@ -907,12 +922,13 @@ int cmd_main(int argc, const char **argv)
 		exit(1);
 	}
 
+	/*在handle_options中没有--version,--help进行处理，这里处理*/
 	if (!strcmp("--version", argv[0]) || !strcmp("-v", argv[0]))
 		argv[0] = "version";
 	else if (!strcmp("--help", argv[0]) || !strcmp("-h", argv[0]))
 		argv[0] = "help";
 
-	cmd = argv[0];
+	cmd = argv[0];/*取操作命令*/
 
 	/*
 	 * We use PATH to find git commands, but we prepend some higher

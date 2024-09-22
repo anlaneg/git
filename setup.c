@@ -351,8 +351,9 @@ int is_git_directory(const char *suspect)
 	/* Check worktree-related signatures */
 	strbuf_addstr(&path, suspect);
 	strbuf_complete(&path, '/');
-	strbuf_addstr(&path, "HEAD");
+	strbuf_addstr(&path, "HEAD");/*构造指向$suspect/HEAD的文件*/
 	if (validate_headref(path.buf))
+		/*headref无效，返回0*/
 		goto done;
 
 	strbuf_reset(&path);
@@ -368,15 +369,17 @@ int is_git_directory(const char *suspect)
 		strbuf_setlen(&path, len);
 		strbuf_addstr(&path, "/objects");
 		if (access(path.buf, X_OK))
+			/*检查/objects目录访问失败，退出*/
 			goto done;
 	}
 
 	strbuf_setlen(&path, len);
 	strbuf_addstr(&path, "/refs");
 	if (access(path.buf, X_OK))
+		/*检查/refs目录访问失败，退出*/
 		goto done;
 
-	ret = 1;
+	ret = 1;/*通过以上目录内容确认，返回1标明为git目录*/
 done:
 	strbuf_release(&path);
 	return ret;
@@ -821,37 +824,45 @@ const char *read_gitfile_gently(const char *path, int *return_error_code)
 		goto cleanup_return;
 	}
 	if (!S_ISREG(st.st_mode)) {
+		/*path非普通文件，退出*/
 		error_code = READ_GITFILE_ERR_NOT_A_FILE;
 		goto cleanup_return;
 	}
 	if (st.st_size > max_file_size) {
+		/*文件尺寸超限*/
 		error_code = READ_GITFILE_ERR_TOO_LARGE;
 		goto cleanup_return;
 	}
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
+		/*打开文件失败*/
 		error_code = READ_GITFILE_ERR_OPEN_FAILED;
 		goto cleanup_return;
 	}
+	/*读取文件全部内容*/
 	buf = xmallocz(st.st_size);
 	len = read_in_full(fd, buf, st.st_size);
 	close(fd);
 	if (len != st.st_size) {
+		/*读取的长度与实际不符，退出*/
 		error_code = READ_GITFILE_ERR_READ_FAILED;
 		goto cleanup_return;
 	}
 	if (!starts_with(buf, "gitdir: ")) {
+		/*buffer内容不以gitdir:开头,退出*/
 		error_code = READ_GITFILE_ERR_INVALID_FORMAT;
 		goto cleanup_return;
 	}
+	/*例如一个项目中有submodule,则在submodule下会有.git文件*/
 	while (buf[len - 1] == '\n' || buf[len - 1] == '\r')
 		len--;
 	if (len < 9) {
+		/*buffer内容过短，无路径*/
 		error_code = READ_GITFILE_ERR_NO_PATH;
 		goto cleanup_return;
 	}
 	buf[len] = '\0';
-	dir = buf + 8;
+	dir = buf + 8;/*跳过前缀，指向路径值*/
 
 	if (!is_absolute_path(dir) && (slash = strrchr(path, '/'))) {
 		size_t pathlen = slash+1 - path;
@@ -861,10 +872,12 @@ const char *read_gitfile_gently(const char *path, int *return_error_code)
 		buf = dir;
 	}
 	if (!is_git_directory(dir)) {
+		/*指定的内容不是目录，报错*/
 		error_code = READ_GITFILE_ERR_NOT_A_REPO;
 		goto cleanup_return;
 	}
 
+	/*取得真实路径*/
 	strbuf_realpath(&realpath, dir, 1);
 	path = realpath.buf;
 
@@ -1062,6 +1075,7 @@ static const char *setup_bare_git_dir(struct strbuf *cwd, int offset,
 
 static dev_t get_device_or_die(const char *path, const char *prefix, int prefix_len)
 {
+	/*取指定路径对应的buf.st_dev*/
 	struct stat buf;
 	if (stat(path, &buf)) {
 		die_errno(_("failed to stat '%*s%s%s'"),
@@ -1298,10 +1312,12 @@ static enum discovery_result setup_git_directory_gently_1(struct strbuf *dir,
 		gitdirenv = read_gitfile_gently(dir->buf, die_on_error ?
 						NULL : &error_code);
 		if (!gitdirenv) {
+			/*读取.git文件失败，尝试.git目录*/
 			if (die_on_error ||
 			    error_code == READ_GITFILE_ERR_NOT_A_FILE) {
 				/* NEEDSWORK: fail if .git is not file nor dir */
 				if (is_git_directory(dir->buf)) {
+					/*dir为合法git目录，复制内容*/
 					gitdirenv = DEFAULT_GIT_DIR_ENVIRONMENT;
 					gitdir_path = xstrdup(dir->buf);
 				}
@@ -1345,6 +1361,7 @@ static enum discovery_result setup_git_directory_gently_1(struct strbuf *dir,
 		}
 
 		if (is_git_directory(dir->buf)) {
+			/*确认为合法的dir目录*/
 			if (get_allowed_bare_repo() == ALLOWED_BARE_REPO_EXPLICIT)
 				return GIT_DIR_DISALLOWED_BARE;
 			if (!ensure_valid_ownership(NULL, NULL, dir->buf, report))
@@ -1438,7 +1455,7 @@ const char *setup_git_directory_gently(int *nongit_ok)
 	 * configuration (including the per-repo config file that we
 	 * ignored previously).
 	 */
-	git_config_clear();
+	git_config_clear();/*清空config*/
 
 	/*
 	 * Let's assume that we are in a git repository.
@@ -1457,12 +1474,14 @@ const char *setup_git_directory_gently(int *nongit_ok)
 		prefix = setup_explicit_git_dir(gitdir.buf, &cwd, &repo_fmt, nongit_ok);
 		break;
 	case GIT_DIR_DISCOVERED:
+		/*如有必要，切换到dir目录*/
 		if (dir.len < cwd.len && chdir(dir.buf))
 			die(_("cannot change to '%s'"), dir.buf);
 		prefix = setup_discovered_git_dir(gitdir.buf, &cwd, dir.len,
 						  &repo_fmt, nongit_ok);
 		break;
 	case GIT_DIR_BARE:
+		/*如有必要，切换到dir目录*/
 		if (dir.len < cwd.len && chdir(dir.buf))
 			die(_("cannot change to '%s'"), dir.buf);
 		prefix = setup_bare_git_dir(&cwd, dir.len, &repo_fmt, nongit_ok);

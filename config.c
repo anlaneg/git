@@ -562,18 +562,20 @@ int git_config_parse_key(const char *key, char **store_key, size_t *baselen_)
 	 */
 
 	if (last_dot == NULL || last_dot == key) {
+		/*last dot不存在，或者以'.'开头的KEY,认为是无效的key*/
 		error(_("key does not contain a section: %s"), key);
 		return -CONFIG_NO_SECTION_OR_NAME;
 	}
 
 	if (!last_dot[1]) {
+		/*名称无效，以'.'结尾*/
 		error(_("key does not contain variable name: %s"), key);
 		return -CONFIG_NO_SECTION_OR_NAME;
 	}
 
 	baselen = last_dot - key;
 	if (baselen_)
-		*baselen_ = baselen;
+		*baselen_ = baselen;/*指定基准长度*/
 
 	/*
 	 * Validate the key and while at it, lower case it for matching.
@@ -592,12 +594,12 @@ int git_config_parse_key(const char *key, char **store_key, size_t *baselen_)
 				error(_("invalid key: %s"), key);
 				goto out_free_ret_1;
 			}
-			c = tolower(c);
+			c = tolower(c);/*转小写*/
 		} else if (c == '\n') {
 			error(_("invalid key (newline): %s"), key);
 			goto out_free_ret_1;
 		}
-		(*store_key)[i] = c;
+		(*store_key)[i] = c;/*填充key*/
 	}
 
 	return 0;
@@ -1332,20 +1334,29 @@ ssize_t git_config_ssize_t(const char *name, const char *value)
 	return ret;
 }
 
+/*解析bool类型字符串*/
 static int git_parse_maybe_bool_text(const char *value)
 {
 	if (!value)
+		/*非空，返回true*/
 		return 1;
 	if (!*value)
+		/*空串，返回false*/
 		return 0;
+
+	/*遇到true,yes,on,返回true*/
 	if (!strcasecmp(value, "true")
 	    || !strcasecmp(value, "yes")
 	    || !strcasecmp(value, "on"))
 		return 1;
+
+	/*遇到false,no,off,返回false*/
 	if (!strcasecmp(value, "false")
 	    || !strcasecmp(value, "no")
 	    || !strcasecmp(value, "off"))
 		return 0;
+
+	/*其它非法输入*/
 	return -1;
 }
 
@@ -1427,7 +1438,10 @@ int git_parse_maybe_bool(const char *value)
 {
 	int v = git_parse_maybe_bool_text(value);
 	if (0 <= v)
+		/*解析成功，直接返回*/
 		return v;
+
+	/*按int进行解析*/
 	if (git_parse_int(value, &v))
 		return !!v;
 	return -1;
@@ -1448,6 +1462,7 @@ int git_config_bool(const char *name, const char *value)
 {
 	int v = git_parse_maybe_bool(value);
 	if (v < 0)
+		/*配置值不正确*/
 		die(_("bad boolean config value '%s' for '%s'"), value, name);
 	return v;
 }
@@ -1455,8 +1470,9 @@ int git_config_bool(const char *name, const char *value)
 int git_config_string(const char **dest, const char *var, const char *value)
 {
 	if (!value)
+		/*value为空，返回失败*/
 		return config_error_nonbool(var);
-	*dest = xstrdup(value);
+	*dest = xstrdup(value);/*复制value,填充dest*/
 	return 0;
 }
 
@@ -1960,7 +1976,7 @@ static int do_config_from(struct config_source *top, config_fn_t fn, void *data,
 
 static int do_config_from_file(config_fn_t fn,
 		const enum config_origin_type origin_type,
-		const char *name, const char *path, FILE *f,
+		const char *name, const char *path/*配置文件路径*/, FILE *f/*配置文件*/,
 		void *data, const struct config_options *opts)
 {
 	struct config_source top;
@@ -1995,10 +2011,12 @@ int git_config_from_file_with_options(config_fn_t fn, const char *filename,
 	FILE *f;
 
 	if (!filename)
+		/*文件名称不存在,报错退出*/
 		BUG("filename cannot be NULL");
 	f = fopen_or_warn(filename, "r");
 	if (f) {
-		ret = do_config_from_file(fn, CONFIG_ORIGIN_FILE, filename,
+		/*文件打开成功，读取配置文件*/
+		ret = do_config_from_file(fn, CONFIG_ORIGIN_FILE/*配置来源于文件*/, filename,
 					  filename, f, data, opts);
 		fclose(f);
 	}
@@ -2071,8 +2089,10 @@ static int git_config_from_blob_ref(config_fn_t fn,
 
 char *git_system_config(void)
 {
+	/*取系统配置*/
 	char *system_config = xstrdup_or_null(getenv("GIT_CONFIG_SYSTEM"));
 	if (!system_config)
+		/*环境变量未指定，使用默认配置*/
 		system_config = system_path(ETC_GITCONFIG);
 	normalize_path_copy(system_config, system_config);
 	return system_config;
@@ -2200,8 +2220,10 @@ int config_with_options(config_fn_t fn, void *data,
 	 * regular lookup sequence.
 	 */
 	if (config_source && config_source->use_stdin) {
+		/*指明了config_source,且使用stdin*/
 		ret = git_config_from_stdin(fn, data);
 	} else if (config_source && config_source->file) {
+		/*指明了config_source,且读取文件*/
 		ret = git_config_from_file(fn, config_source->file, data);
 	} else if (config_source && config_source->blob) {
 		struct repository *repo = config_source->repo ?
@@ -2226,6 +2248,7 @@ static void configset_iter(struct config_set *cs, config_fn_t fn, void *data)
 	struct config_set_element *entry;
 	struct configset_list *list = &cs->list;
 
+	/*采用fn遍历所有配置项*/
 	for (i = 0; i < list->nr; i++) {
 		entry = list->items[i].e;
 		value_index = list->items[i].value_index;
@@ -2234,6 +2257,7 @@ static void configset_iter(struct config_set *cs, config_fn_t fn, void *data)
 		current_config_kvi = values->items[value_index].util;
 
 		if (fn(entry->key, values->items[value_index].string, data) < 0)
+			/*执行fn失败*/
 			git_die_config_linenr(entry->key,
 					      current_config_kvi->filename,
 					      current_config_kvi->linenr);
@@ -2289,6 +2313,7 @@ void read_very_early_config(config_fn_t cb, void *data)
 	config_with_options(cb, data, NULL, &opts);
 }
 
+/*查询key的配置*/
 static struct config_set_element *configset_find_element(struct config_set *cs, const char *key)
 {
 	struct config_set_element k;
@@ -2299,10 +2324,11 @@ static struct config_set_element *configset_find_element(struct config_set *cs, 
 	 * for querying entries from the hashmap.
 	 */
 	if (git_config_parse_key(key, &normalized_key, NULL))
-		return NULL;
+		return NULL;/*key格式有误，返回NULL*/
 
 	hashmap_entry_init(&k.ent, strhash(normalized_key));
-	k.key = normalized_key;
+	k.key = normalized_key;/*填写key*/
+	/*通过key进行查询config_hash*/
 	found_entry = hashmap_get_entry(&cs->config_hash, &k, ent, NULL);
 	free(normalized_key);
 	return found_entry;
@@ -2321,6 +2347,7 @@ static int configset_add_value(struct config_set *cs, const char *key, const cha
 	 * are already normalized. So simply add them without any further munging.
 	 */
 	if (!e) {
+		/*key对应的内容不存在，向hashtable中添加*/
 		e = xmalloc(sizeof(*e));
 		hashmap_entry_init(&e->ent, strhash(key));
 		e->key = xstrdup(key);
@@ -2329,6 +2356,7 @@ static int configset_add_value(struct config_set *cs, const char *key, const cha
 	}
 	si = string_list_append_nodup(&e->value_list, xstrdup_or_null(value));
 
+	/*加入到list中*/
 	ALLOC_GROW(cs->list.items, cs->list.nr + 1, cs->list.alloc);
 	l_item = &cs->list.items[cs->list.nr++];
 	l_item->e = e;
@@ -2367,6 +2395,7 @@ static int config_set_element_cmp(const void *cmp_data UNUSED,
 
 void git_configset_init(struct config_set *cs)
 {
+	/*初始化hash*/
 	hashmap_init(&cs->config_hash, config_set_element_cmp, NULL, 0);
 	cs->hash_initialized = 1;
 	cs->list.nr = 0;
@@ -2417,14 +2446,17 @@ int git_configset_get_value(struct config_set *cs, const char *key, const char *
 	values = git_configset_get_value_multi(cs, key);
 
 	if (!values)
+		/*未配置*/
 		return 1;
 	assert(values->nr > 0);
+	/*取最后一个配置的值*/
 	*value = values->items[values->nr - 1].string;
 	return 0;
 }
 
 const struct string_list *git_configset_get_value_multi(struct config_set *cs, const char *key)
 {
+	/*查询key对应的内容*/
 	struct config_set_element *e = configset_find_element(cs, key);
 	return e ? &e->value_list : NULL;
 }
@@ -2472,7 +2504,7 @@ int git_configset_get_ulong(struct config_set *cs, const char *key, unsigned lon
 		return 1;
 }
 
-int git_configset_get_bool(struct config_set *cs, const char *key, int *dest)
+int git_configset_get_bool(struct config_set *cs, const char *key, int *dest/*出参，填充key对应的配置*/)
 {
 	const char *value;
 	if (!git_configset_get_value(cs, key, &value)) {
@@ -2483,10 +2515,11 @@ int git_configset_get_bool(struct config_set *cs, const char *key, int *dest)
 }
 
 int git_configset_get_bool_or_int(struct config_set *cs, const char *key,
-				int *is_bool, int *dest)
+				int *is_bool, int *dest/*出参，填充key对应的配置*/)
 {
 	const char *value;
 	if (!git_configset_get_value(cs, key, &value)) {
+		/*查询到key对应的配置，将配置内容转换为int/bool并存储到dest中*/
 		*dest = git_config_bool_or_int(key, value, is_bool);
 		return 0;
 	} else
@@ -2524,10 +2557,12 @@ static void repo_read_config(struct repository *repo)
 	opts.git_dir = repo->gitdir;
 
 	if (!repo->config)
+		/*申请结构体*/
 		CALLOC_ARRAY(repo->config, 1);
 	else
 		git_configset_clear(repo->config);
 
+	/*初始化hash*/
 	git_configset_init(repo->config);
 
 	if (config_with_options(config_set_callback, repo->config, NULL, &opts) < 0)
@@ -2548,7 +2583,9 @@ static void repo_read_config(struct repository *repo)
 static void git_config_check_init(struct repository *repo)
 {
 	if (repo->config && repo->config->hash_initialized)
+		/*配置已初始化，直接返回*/
 		return;
+	/*如果配置未初始化，执行初始化*/
 	repo_read_config(repo);
 }
 
@@ -2618,7 +2655,9 @@ int repo_config_get_ulong(struct repository *repo,
 int repo_config_get_bool(struct repository *repo,
 			 const char *key, int *dest)
 {
+	/*如果配置未初始化，先初始化配置*/
 	git_config_check_init(repo);
+	/*读取key对应的配置值，保存在dest中*/
 	return git_configset_get_bool(repo->config, key, dest);
 }
 
@@ -2676,6 +2715,7 @@ void git_config(config_fn_t fn, void *data)
 
 void git_config_clear(void)
 {
+	/*清空此repository所有配置*/
 	repo_config_clear(the_repository);
 }
 

@@ -424,11 +424,12 @@ struct configset_list_item {
  */
 struct configset_list {
 	struct configset_list_item *items;
-	unsigned int nr, alloc;
+	unsigned int nr/*items长度*/, alloc/*items内存有效长度*/;
 };
 
 struct config_set {
 	struct hashmap config_hash;
+	/*标记是否已初始化*/
 	int hash_initialized;
 	struct configset_list list;
 };

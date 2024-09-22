@@ -275,8 +275,8 @@ static struct cached_object {
 	enum object_type type;
 	void *buf;
 	unsigned long size;
-} *cached_objects;
-static int cached_object_nr, cached_object_alloc;
+} *cached_objects;/*缓存的objects,线程表，数目由cached_object_nr指定*/
+static int cached_object_nr/*数目*/, cached_object_alloc;
 
 static struct cached_object empty_tree = {
 	.oid = {
@@ -286,6 +286,7 @@ static struct cached_object empty_tree = {
 	.buf = "",
 };
 
+/*在cached_objects中查找oid对应的cached_object*/
 static struct cached_object *find_cached_object(const struct object_id *oid)
 {
 	int i;
@@ -293,6 +294,7 @@ static struct cached_object *find_cached_object(const struct object_id *oid)
 
 	for (i = 0; i < cached_object_nr; i++, co++) {
 		if (oideq(&co->oid, oid))
+			/*oid匹配，返回cached_object*/
 			return co;
 	}
 	if (oideq(oid, the_hash_algo->empty_tree))

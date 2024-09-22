@@ -143,9 +143,9 @@ typedef int parse_opt_subcommand_fn(int argc, const char **argv,
  *   It will be put in value when the subcommand is given on the command line.
  */
 struct option {
-	enum parse_opt_type type;
-	int short_name;
-	const char *long_name;
+	enum parse_opt_type type;/*解析类型*/
+	int short_name;/*短名称*/
+	const char *long_name;/*长名称*/
 	void *value;
 	const char *argh;
 	const char *help;

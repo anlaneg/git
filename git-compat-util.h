@@ -443,6 +443,7 @@ static inline int git_skip_dos_drive_prefix(char **path UNUSED)
 #define skip_dos_drive_prefix git_skip_dos_drive_prefix
 #endif
 
+/*字符c是否为路径分隔符*/
 static inline int git_is_dir_sep(int c)
 {
 	return c == '/';
@@ -535,6 +536,7 @@ static inline int is_path_owned_by_current_uid(const char *path,
 #ifndef find_last_dir_sep
 static inline char *git_find_last_dir_sep(const char *path)
 {
+	/*找path中最后一个'/'所在位置*/
 	return strrchr(path, '/');
 }
 #define find_last_dir_sep git_find_last_dir_sep
@@ -676,10 +678,11 @@ static inline int skip_prefix(const char *str, const char *prefix,
 {
 	do {
 		if (!*prefix) {
+			/*前缀已为空，返回out*/
 			*out = str;
 			return 1;
 		}
-	} while (*str++ == *prefix++);
+	} while (*str++ == *prefix++);/*str与prefix保持相等匹配，否则退出*/
 	return 0;
 }
 
@@ -1089,6 +1092,7 @@ int xstrncmpz(const char *s, const char *t, size_t len);
 
 #define ALLOC_ARRAY(x, alloc) (x) = xmalloc(st_mult(sizeof(*(x)), (alloc)))
 #define CALLOC_ARRAY(x, alloc) (x) = xcalloc((alloc), sizeof(*(x)))
+/*realloc alloc个x类型元素*/
 #define REALLOC_ARRAY(x, alloc) (x) = xrealloc((x), st_mult(sizeof(*(x)), (alloc)))
 
 #define COPY_ARRAY(dst, src, n) copy_array((dst), (src), (n), sizeof(*(dst)) + \

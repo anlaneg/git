@@ -27,11 +27,13 @@ union any_object {
 };
 
 struct alloc_state {
+	/*元素数*/
 	int nr;    /* number of nodes left in current allocation */
+	/*元素指针*/
 	void *p;   /* first free node in current allocation */
 
 	/* bookkeeping of allocations */
-	void **slabs;
+	void **slabs;/*记录申请到的内存指针*/
 	int slab_nr, slab_alloc;
 };
 
@@ -55,22 +57,25 @@ static inline void *alloc_node(struct alloc_state *s, size_t node_size)
 	void *ret;
 
 	if (!s->nr) {
+		/*初始化s*/
 		s->nr = BLOCKING;
 		s->p = xmalloc(BLOCKING * node_size);
 
+		/*申请s->slabs*/
 		ALLOC_GROW(s->slabs, s->slab_nr + 1, s->slab_alloc);
-		s->slabs[s->slab_nr++] = s->p;
+		s->slabs[s->slab_nr++] = s->p;/*记录申请的内容*/
 	}
-	s->nr--;
-	ret = s->p;
-	s->p = (char *)s->p + node_size;
-	memset(ret, 0, node_size);
+	s->nr--;/*减掉一个元素*/
+	ret = s->p;/*要减掉的元素*/
+	s->p = (char *)s->p + node_size;/*指向下一个元素*/
+	memset(ret, 0, node_size);/*元素内容清零*/
 
 	return ret;
 }
 
 void *alloc_blob_node(struct repository *r)
 {
+	/*申请blob*/
 	struct blob *b = alloc_node(r->parsed_objects->blob_state, sizeof(struct blob));
 	b->object.type = OBJ_BLOB;
 	return b;
@@ -78,6 +83,7 @@ void *alloc_blob_node(struct repository *r)
 
 void *alloc_tree_node(struct repository *r)
 {
+	/*申请tree*/
 	struct tree *t = alloc_node(r->parsed_objects->tree_state, sizeof(struct tree));
 	t->object.type = OBJ_TREE;
 	return t;

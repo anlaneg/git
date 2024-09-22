@@ -64,11 +64,12 @@ struct string_list;
  * access to the string itself.
  */
 struct strbuf {
-	size_t alloc;
-	size_t len;
-	char *buf;
+	size_t alloc;/*已申请的有效总长度*/
+	size_t len;/*内容占用长度*/
+	char *buf;/*内容*/
 };
 
+/*初始化为空串*/
 extern char strbuf_slopbuf[];
 #define STRBUF_INIT  { .buf = strbuf_slopbuf }
 
@@ -302,6 +303,7 @@ void strbuf_add(struct strbuf *sb, const void *data, size_t len);
  */
 static inline void strbuf_addstr(struct strbuf *sb, const char *s)
 {
+	/*向sb中添加字符串s*/
 	strbuf_add(sb, s, strlen(s));
 }
 

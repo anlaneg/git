@@ -658,6 +658,7 @@ void strbuf_git_common_path(struct strbuf *sb,
 	va_end(args);
 }
 
+/*检查给定的路径path是否为合法的headref*/
 int validate_headref(const char *path)
 {
 	struct stat st;
@@ -668,10 +669,12 @@ int validate_headref(const char *path)
 	ssize_t len;
 
 	if (lstat(path, &st) < 0)
+		/*文件获取统计失败，返回-1*/
 		return -1;
 
 	/* Make sure it is a "refs/.." symlink */
 	if (S_ISLNK(st.st_mode)) {
+		/*遇到link文件*/
 		len = readlink(path, buffer, sizeof(buffer)-1);
 		if (len >= 5 && !memcmp("refs/", buffer, 5))
 			return 0;
@@ -684,6 +687,7 @@ int validate_headref(const char *path)
 	fd = open(path, O_RDONLY);
 	if (fd < 0)
 		return -1;
+	/*读取.git/HEAD文件所有内容*/
 	len = read_in_full(fd, buffer, sizeof(buffer)-1);
 	close(fd);
 
@@ -695,9 +699,11 @@ int validate_headref(const char *path)
 	 * Is it a symbolic ref?
 	 */
 	if (skip_prefix(buffer, "ref:", &refname)) {
+		/*内容以ref:开始，*/
 		while (isspace(*refname))
 			refname++;
 		if (starts_with(refname, "refs/"))
+			/*确认被引用名称为refs/开头*/
 			return 0;
 	}
 
@@ -705,8 +711,10 @@ int validate_headref(const char *path)
 	 * Is this a detached HEAD?
 	 */
 	if (!get_oid_hex(buffer, &oid))
+		/*buffer指向的是一个oid*/
 		return 0;
 
+	/*返回失败*/
 	return -1;
 }
 

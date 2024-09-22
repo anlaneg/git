@@ -21,14 +21,16 @@ static int get_entry_index(const struct string_list *list, const char *string,
 	int left = -1, right = list->nr;
 	compare_strings_fn cmp = list->cmp ? list->cmp : strcmp;
 
+	/*二分法在list->items中进行查找*/
 	while (left + 1 < right) {
-		int middle = left + (right - left) / 2;
+		int middle = left + (right - left) / 2;/*取中点*/
 		int compare = cmp(string, list->items[middle].string);
 		if (compare < 0)
 			right = middle;
 		else if (compare > 0)
 			left = middle;
 		else {
+			/*完全命中*/
 			*exact_match = 1;
 			return middle;
 		}
@@ -45,8 +47,10 @@ static int add_entry(int insert_at, struct string_list *list, const char *string
 	int index = insert_at != -1 ? insert_at : get_entry_index(list, string, &exact_match);
 
 	if (exact_match)
+		/*返回命中对应的index*/
 		return -1 - index;
 
+	/*未查询到，执行添加*/
 	ALLOC_GROW(list->items, list->nr+1, list->alloc);
 	if (index < list->nr)
 		MOVE_ARRAY(list->items + index + 1, list->items + index,
@@ -59,11 +63,13 @@ static int add_entry(int insert_at, struct string_list *list, const char *string
 	return index;
 }
 
+/*向list中添加入数据*/
 struct string_list_item *string_list_insert(struct string_list *list, const char *string)
 {
 	int index = add_entry(-1, list, string);
 
 	if (index < 0)
+		/*数据已存在情况*/
 		index = -1 - index;
 
 	return list->items + index;

@@ -14,9 +14,9 @@
  */
 struct name_entry {
 	struct object_id oid;
-	const char *path;
-	int pathlen;
-	unsigned int mode;
+	const char *path;/*文件路径名称*/
+	int pathlen;/*文件路径长度*/
+	unsigned int mode;/*文件mode*/
 };
 
 /**
@@ -27,13 +27,13 @@ struct tree_desc {
 	 * pointer into the memory representation of the tree. It always
 	 * points at the current entry being visited.
 	 */
-	const void *buffer;
+	const void *buffer;/*entry对应的buffer,buffer实际内容可能要更长些*/
 
 	/* points to the current entry being visited. */
-	struct name_entry entry;
+	struct name_entry entry;/*buffer对应的entry*/
 
 	/* counts the number of bytes left in the `buffer`. */
-	unsigned int size;
+	unsigned int size;/*buffer长度*/
 
 	/* option flags passed via init_tree_desc_gently() */
 	enum tree_desc_flags {

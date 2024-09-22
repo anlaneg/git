@@ -153,7 +153,7 @@ void *create_object(struct repository *r, const struct object_id *oid, void *o)
 
 	insert_obj_hash(obj, r->parsed_objects->obj_hash,
 			r->parsed_objects->obj_hash_size);
-	r->parsed_objects->nr_objs++;
+	r->parsed_objects->nr_objs++;/*元素数增加*/
 	return obj;
 }
 

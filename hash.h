@@ -245,11 +245,14 @@ static inline int hasheq(const unsigned char *sha1, const unsigned char *sha2)
 
 static inline int oideq(const struct object_id *oid1, const struct object_id *oid2)
 {
+	/*确定hash算法*/
 	const struct git_hash_algo *algop;
 	if (!oid1->algo)
 		algop = the_hash_algo;
 	else
 		algop = &hash_algos[oid1->algo];
+
+	/*hash比对，检查两者是否相等*/
 	return hasheq_algop(oid1->hash, oid2->hash, algop);
 }
 

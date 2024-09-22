@@ -56,6 +56,7 @@ void strbuf_init(struct strbuf *sb, size_t hint)
 	struct strbuf blank = STRBUF_INIT;
 	memcpy(sb, &blank, sizeof(*sb));
 	if (hint)
+		/*指定了hint,执行增长*/
 		strbuf_grow(sb, hint);
 }
 
@@ -293,10 +294,13 @@ void strbuf_remove(struct strbuf *sb, size_t pos, size_t len)
 	strbuf_splice(sb, pos, len, "", 0);
 }
 
+/*向sb中添加数据*/
 void strbuf_add(struct strbuf *sb, const void *data, size_t len)
 {
 	strbuf_grow(sb, len);
+	/*填充sb->buf*/
 	memcpy(sb->buf + sb->len, data, len);
+	/*更新sb->len*/
 	strbuf_setlen(sb, sb->len + len);
 }
 
@@ -589,6 +593,7 @@ int strbuf_readlink(struct strbuf *sb, const char *path, size_t hint)
 	return -1;
 }
 
+/*取当前工作目录*/
 int strbuf_getcwd(struct strbuf *sb)
 {
 	size_t oldalloc = sb->alloc;

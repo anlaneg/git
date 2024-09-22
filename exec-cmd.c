@@ -263,14 +263,17 @@ char *system_path(const char *path)
 	struct strbuf d = STRBUF_INIT;
 
 	if (is_absolute_path(path))
+		/*使用绝对路径，直接复制后返回*/
 		return xstrdup(path);
 
+	/*使用默认认路径*/
 	strbuf_addf(&d, "%s/%s", system_prefix(), path);
 	return strbuf_detach(&d, NULL);
 }
 
 static const char *exec_path_value;
 
+/*更新exec path*/
 void git_set_exec_path(const char *exec_path)
 {
 	exec_path_value = exec_path;
@@ -284,10 +287,12 @@ void git_set_exec_path(const char *exec_path)
 const char *git_exec_path(void)
 {
 	if (!exec_path_value) {
+		/*取环境变量*/
 		const char *env = getenv(EXEC_PATH_ENVIRONMENT);
 		if (env && *env)
 			exec_path_value = xstrdup(env);
 		else
+			/*环境变量不存在，取sys默认路径*/
 			exec_path_value = system_path(GIT_EXEC_PATH);
 	}
 	return exec_path_value;
@@ -308,7 +313,7 @@ void setup_path(void)
 	struct strbuf new_path = STRBUF_INIT;
 
 	git_set_exec_path(exec_path);
-	add_path(&new_path, exec_path);
+	add_path(&new_path, exec_path);/*将exec_path合入到PATH环境变量中*/
 
 	if (old_path)
 		strbuf_addstr(&new_path, old_path);

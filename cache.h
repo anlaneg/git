@@ -700,10 +700,12 @@ int daemonize(void);
 #define ALLOC_GROW(x, nr, alloc) \
 	do { \
 		if ((nr) > alloc) { \
+			/*确定要申请多少元素*/\
 			if (alloc_nr(alloc) < (nr)) \
 				alloc = (nr); \
 			else \
 				alloc = alloc_nr(alloc); \
+				/*申请alloc个x类型元素内容*/\
 			REALLOC_ARRAY(x, alloc); \
 		} \
 	} while (0)
